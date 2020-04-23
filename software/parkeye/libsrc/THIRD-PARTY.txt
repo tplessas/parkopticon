@@ -1,0 +1,10 @@
+
+Lists of 2 third-party dependencies.
+
+HCSR04-ultrasonic-sensor-lib@2.0.2 by gamegine
+https://github.com/gamegine/HCSR04-ultrasonic-sensor-lib
+Used and distributed under the terms of the MIT License.
+
+MFRC522@1.4.6 by miguelbalboa
+https://github.com/miguelbalboa/rfid
+Used and distributed under the terms of the Unlicense.
