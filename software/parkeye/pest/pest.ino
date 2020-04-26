@@ -1,11 +1,36 @@
 // ParkEye Setup Tool (PEST)
 // Created by Theodoros Plessas (8160192) for Artifex Electronics
+//
+// MIT License
+//
+// Copyright (c) 2020 Theodoros Plessas
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
+//libraries
 #include <EEPROM.h>
 #include <LiquidCrystal.h>
 
+//init display
 LiquidCrystal lcd(8, A0, 4, 5, 6, 7);
 
+//display graphics as custom characters
 byte logo[8] =
 {
   0b01110,
@@ -31,15 +56,16 @@ byte maint[8] =
 };
 
 void setup() {
+  //init serial at 9600, print message
   Serial.begin(9600);
   Serial.println("          ParkEye Setup Tool (PEST)");
   Serial.println("(c)2020 Artifex Electronics | All rights reserved");
   Serial.println();
 
+  //init LCD, creating symbols and displaying maintenance mode message
   lcd.begin(16, 2);
   lcd.createChar(0, logo);
   lcd.createChar(1, maint);
-
   lcd.setCursor(1, 0);
   lcd.write(byte(1));
   lcd.print(" Parkopticon");
@@ -47,6 +73,7 @@ void setup() {
   lcd.print("Maintenance Mode");
 }
 
+//write config
 void write() {
   bool flag = true;
   bool flag2 = true;
@@ -59,7 +86,7 @@ void write() {
         flag2 = false;
       }
     }
-    if (uid.length() == 5) {
+    if (uid.length() == 5) { //form check
       for (int i = 0; i < 5; i++) {
         EEPROM.write(i, uid[i]);
       }
@@ -83,9 +110,9 @@ void write() {
   flag = true;
   flag2 = true;
   Serial.println("Set operation mode:");
-  Serial.println("|1 Basic|");
-  Serial.println("|2 RFID Stored|");
-  Serial.println("|3 RFID Serial|");
+  Serial.println("|0 Basic|");
+  Serial.println("|1 RFID Stored|");
+  Serial.println("|2 RFID Serial|");
 
   while (flag) {
     while (flag2) {
@@ -95,17 +122,17 @@ void write() {
       }
     }
 
-    if (opmode == 1) {
+    if (opmode == 0) {
       Serial.println("Wrote: Basic");
       EEPROM.write(5, 0);
       flag = false;
     }
-    else if (opmode == 2) {
+    else if (opmode == 1) {
       Serial.println("Wrote: RFID Stored");
       EEPROM.write(5, 1);
       flag = false;
     }
-    else if (opmode == 3) {
+    else if (opmode == 2) {
       Serial.println("Wrote: RFID Remote");
       EEPROM.write(5, 2);
       flag = false;
@@ -118,7 +145,7 @@ void write() {
 
   flag = true;
   flag2 = true;
-  if (opmode == 2) {
+  if (opmode == 1) {
     Serial.println();
     Serial.println("Set RFID tag UID (XX XX XX XX):");
     while (flag) {
@@ -129,6 +156,7 @@ void write() {
         }
       }
 
+      //form check and write
       if (uid.length() == 11) {
         if (isSpace(uid[2]) && isSpace(uid[5]) && isSpace(uid[8])) {
           for (int i = 0; i < 11; i++) {
@@ -154,6 +182,7 @@ void write() {
   Serial.println("\nSetup Complete");
 }
 
+//read stored config
 void read() {
   Serial.print("Device UID: ");
   char data;
@@ -179,31 +208,35 @@ void read() {
 
 }
 
+//EEPROM dump routine
 void dump() {
-  int counter = 0;
   Serial.println("EEPROM Dump");
+
+  int counter = 0; //byte to be read, up to 1023
+  //print column headers
   Serial.print(" *   ");
   for (int i = 0; i < 16; i++) {
     if (i < 9) {
-    Serial.print(String(i + 1) + "   ");
+    Serial.print(String(i + 1) + "   "); //one digit, three spaces
     }
     else {
-      Serial.print(String(i + 1) + "  ");
+      Serial.print(String(i + 1) + "  "); //two digits, two spaces
     }
   }
   Serial.println();
   for (int i = 0; i < 64; i++) {
     if (i < 9) {
-      Serial.print(" ");
+      Serial.print(" "); //extra space for one digit
     }
-    Serial.print(String(i + 1) + "   ");
+    Serial.print(String(i + 1) + "   "); //line header and three spaces
+
     for (int j = 0; j < 16; j++) {
-      if (EEPROM.read(counter) > 99) {
+      if (EEPROM.read(counter) > 99) { //three digits, one space
         Serial.print(String(EEPROM.read(counter)) + " ");
-      } else if (EEPROM.read(counter) < 99 && EEPROM.read(counter) > 9) {
+      } else if (EEPROM.read(counter) < 99 && EEPROM.read(counter) > 9) { //two digits, two spaces
         Serial.print(String(EEPROM.read(counter)) + "  ");
       } else {
-        Serial.print(String(EEPROM.read(counter)) + "   ");
+        Serial.print(String(EEPROM.read(counter)) + "   "); //one digit, three spaces
       }
       counter++;
     }
@@ -212,6 +245,7 @@ void dump() {
   Serial.println();
 }
 
+//main menu
 void loop() {
   int opmode;
   bool flag = true;

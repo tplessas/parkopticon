@@ -1,5 +1,27 @@
 // ParkEye Runtime with Messaging (PERM)
 // Created by Theodoros Plessas (8160192) for Artifex Electronics
+//
+// MIT License
+//
+// Copyright (c) 2020 Theodoros Plessas
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 //libraries
 #include <SPI.h>
@@ -8,7 +30,7 @@
 #include <EEPROM.h>
 #include <LiquidCrystal.h>
 
-//initializing sensors
+//init sensors
 HCSR04 hc(2, 3);
 MFRC522 rfid(10, 9);
 MFRC522::MIFARE_Key key;
@@ -87,6 +109,7 @@ byte bad[8] =
 };
 
 void setup() {
+  //init serial at 9600
   Serial.begin(9600);
 
   //reading and printing uid
@@ -194,23 +217,22 @@ void occupy() {
   //opmode 1,2: rfid subroutine
   //TODO add delays between occupy and check, reread attempts to ensure successful reading
   if (opmode != 0) {
-    int present = 0;
-    int read = 0;
-    bool ok = false;
-    byte nuidPICC[4];
+    int present = 0; //times tag was NOT present
+    int read = 0; //read attempts
+    bool ok = false; //used to break from ReadCardSerial loop if there's no infraction
+    byte nuidPICC[4]; //rfid tag uid, to be converted to String for further use by castString()
 
     for (int i = 0; i < 2; i++) {
-      if (rfid.PICC_IsNewCardPresent()) {
-        delay(1000);
+      if (rfid.PICC_IsNewCardPresent()) { //check if tag is present
         for (int j = 0; j < 3; j++) {
-          if (rfid.PICC_ReadCardSerial()) {
+          if (rfid.PICC_ReadCardSerial()) { //check if tag is read successfully
             MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
-            if (piccType = MFRC522::PICC_TYPE_MIFARE_1K) {
+            if (piccType == MFRC522::PICC_TYPE_MIFARE_1K) { //check if tag is legal (MIFARE 1K)
               for (byte i = 0; i < 4; i++) {
-                nuidPICC[i] = rfid.uid.uidByte[i];
+                nuidPICC[i] = rfid.uid.uidByte[i]; //read tag uid
               }
               if (opmode == 1) {
-                if (castString().equals(rfuid)) {
+                if (castString().equals(rfuid)) { //compare with stored
                   Serial.print("ALLGOOD*");
                   ok = true;
                   lcd.setCursor(0, 0);
@@ -223,7 +245,7 @@ void occupy() {
                   lcd.write(byte(4));
                   lcd.print("UNAUTHPK");
                 }
-              } else {
+              } else { //castString and print to serial
                 Serial.print(castString());
                 Serial.print("*");
                 ok = true;
@@ -235,11 +257,12 @@ void occupy() {
               lcd.write(byte(4));
               lcd.print("ILLGLTAG");
             }
-            if (infract || ok)
+            if (infract || ok) //infraction or ALLGOOD/sent to serial
               break;
-            delay(1000);
+            delay(1000); //delay before next read attempt
           } else {
             read++;
+            //RFIDFAIL if tag not read this number of times
             if (read == 3) {
               Serial.print("RFIDFAIL*");
               while (1) {}
@@ -248,7 +271,7 @@ void occupy() {
         }
         if (infract || ok)
           break;
-        delay(1000);
+        delay(1000); //delay before next present check
       } else {
         present++;
         //NOCARD if tag not found this number of times
