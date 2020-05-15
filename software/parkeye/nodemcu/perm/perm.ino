@@ -110,7 +110,7 @@ void occupy() {
   delay(500);
 
   //opmode 1,2: rfid subroutine
-  //TODO add delays between occupy and check, reread attempts to ensure successful reading
+  //TODO add reread attempts to ensure successful reading
   if (opmode != 0) {
     int present = 0; //times tag was NOT present
     int read = 0; //read attempts

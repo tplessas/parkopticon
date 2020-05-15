@@ -213,14 +213,14 @@ void check(int dist) {
 void occupy() {
   occ = true;
   Serial.print("OCCD*");
+  delay(500);
 
   //opmode 1,2: rfid subroutine
-  //TODO add delays between occupy and check, reread attempts to ensure successful reading
+  //TODO add reread attempts to ensure successful reading
   if (opmode != 0) {
     int present = 0; //times tag was NOT present
     int read = 0; //read attempts
     bool ok = false; //used to break from ReadCardSerial loop if there's no infraction
-    byte nuidPICC[4]; //rfid tag uid, to be converted to String for further use by castString()
 
     for (int i = 0; i < 2; i++) {
       if (rfid.PICC_IsNewCardPresent()) { //check if tag is present
@@ -228,9 +228,6 @@ void occupy() {
           if (rfid.PICC_ReadCardSerial()) { //check if tag is read successfully
             MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
             if (piccType == MFRC522::PICC_TYPE_MIFARE_1K) { //check if tag is legal (MIFARE 1K)
-              for (byte i = 0; i < 4; i++) {
-                nuidPICC[i] = rfid.uid.uidByte[i]; //read tag uid
-              }
               if (opmode == 1) {
                 if (castString().equals(rfuid)) { //compare with stored
                   Serial.print("ALLGOOD*");
