@@ -133,7 +133,7 @@ void write() {
       flag = false;
     }
     else if (opmode == 2) {
-      Serial.println("Wrote: RFID Remote");
+      Serial.println("Wrote: RFID Serial");
       EEPROM.write(5, 2);
       flag = false;
     }
@@ -197,7 +197,7 @@ void read() {
   } else if (EEPROM.read(5) == 1) {
     Serial.print("RFID Stored");
   } else {
-    Serial.print("RFID Remote");
+    Serial.print("RFID Serial");
   }
   Serial.println();
   Serial.print("RFID UID: ");

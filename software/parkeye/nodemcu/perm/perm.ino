@@ -27,87 +27,97 @@
 #include <SPI.h>
 #include <MFRC522.h>
 #include <EEPROM.h>
+#include <RTCVars.h>
 
-const int proximity = 0;
-
-//declare sensors
+//declare mfrc pins
 MFRC522 rfid(4, 5);
 MFRC522::MIFARE_Key key;
 
-//config variables
-String uid; //ParkEye UID
-int opmode;
-String rfuid; //RFID tag UID, always loaded no matter the opmode
+RTCVars state; // stores variables in RTCmem, persistence after deep sleep-reset cycle
 
-//status variables
-bool occ = false;
-bool infract = false; //infraction status, used in rfid subroutine
+//config variables
+char uid[6]; //ParkEye UID
+int opmode;
+char rfuid[12]; //RFID tag UID, always loaded no matter the opmode
+
+//status variables as integers for RTCmem storage
+int occ;
+int infract; //infraction status, used in rfid subroutine
 
 void setup() {
-  //init serial at 74880
+  //init serial at 74880 as debug port, NOT COMPATIBLE WITH edgeWare Serial
   Serial.begin(74880);
-  EEPROM.begin(512);
-  pinMode(proximity, INPUT);
 
-  //reading and printing uid
-  char temp[6];
-  temp[5] = 0x00; //null char, end of byte array
-  for (int i = 0; i < 5; i++) {
-    temp[i] = EEPROM.read(i);
+  //pass variable pointers to RTC state object
+  for (int i = 0; i < 6; i++) {
+    state.registerVar(&(uid[i]));
   }
-  uid = String(temp);
-  Serial.print(uid);
-
-  //reading and printing opmode
-  opmode = EEPROM.read(5);
-  Serial.print(opmode);
-
-  //reading and printing rfuid
-  //TODO find out what it does when all bytes==255
-  char temp2[12];
-  temp2[11] = 0x00; //null char, end of byte array
-  for (int i = 0; i < 11; i++) {
-    temp2[i] = EEPROM.read(i + 6);
+  state.registerVar(&opmode);
+  for (int i = 0; i < 12; i++) {
+    state.registerVar(&(rfuid[i]));
   }
-  rfuid = String(temp2);
-  Serial.print(rfuid);
-  Serial.print("*");
+  state.registerVar(&occ);
+  state.registerVar(&infract);
 
-  //opmode 1, 2: init SPI bus for MFRC522 and setting key to default
-  //TODO store key in config?
-  if (opmode != 0) {
-    SPI.begin();
-    rfid.PCD_Init();
-    for (byte i = 0; i < 6; i++) {
-      key.keyByte[i] = 0xFF;
+  if (!state.loadFromRTC()) { //cold boot, load config from EEPROM
+    EEPROM.begin(512);
+    delay(5000);
+    Serial.print("HARD*"); //as in hard reset
+
+    //reading and printing uid
+    uid[5] = 0x00; //null char, end of byte array
+    for (int i = 0; i < 5; i++) {
+      uid[i] = EEPROM.read(i);
     }
+    Serial.print(uid);
+
+    //reading and printing opmode
+    opmode = EEPROM.read(5);
+    Serial.print(opmode);
+
+    //reading and printing rfuid
+    rfuid[11] = 0x00; //null char, end of byte array
+    for (int i = 0; i < 11; i++) {
+      rfuid[i] = EEPROM.read(i + 6);
+    }
+    Serial.print(rfuid);
+    Serial.print("*");
+
+    free(); //called to init status vars to false, !!!NO CAR IN PLACE!!!
+    state.saveToRTC();
+    EEPROM.end();
+    ESP.deepSleep(0); //sleep until rst LOW
+  } else { //soft reset, variables in memory
+    Serial.print("SOFT*"); //as in soft reset
+    flip();
+    ESP.deepSleep(0); //sleep until rst LOW
   }
-
-  EEPROM.end();
 }
 
-void loop() {
-  check();
-
-  //delay before next check
-  delay(500);
-}
-
-//check proximity sensor status
-void check() {
-  if ((digitalRead(proximity) == LOW) && (occ == false)) {
+//flip occupied status on wakeup
+void flip() {
+  if (occ == 0) {
     occupy();
+  } else {
+    free();
   }
-  else if ((digitalRead(proximity) == HIGH) && (occ == true)) {
-    freed();
+  state.saveToRTC();
+}
+
+//opmode 1, 2: init SPI bus for MFRC522 and setting key to default
+//TODO store key in config?
+void mfrc522init() {
+  SPI.begin();
+  rfid.PCD_Init();
+  for (byte i = 0; i < 6; i++) {
+    key.keyByte[i] = 0xFF;
   }
 }
 
 //occupy parking spot
 void occupy() {
-  occ = true;
+  occ = 1;
   Serial.print("OCCD*");
-  delay(500);
 
   //opmode 1,2: rfid subroutine
   //TODO add reread attempts to ensure successful reading
@@ -115,20 +125,23 @@ void occupy() {
     int present = 0; //times tag was NOT present
     int read = 0; //read attempts
     bool ok = false; //used to break from ReadCardSerial loop if there's no infraction
+    mfrc522init();
 
     for (int i = 0; i < 2; i++) {
+      rfid.PCD_SoftPowerUp(); //wake mfrc522
+      delay(1000); //delay to ensure mfrc522 wakeup and tag present
       if (rfid.PICC_IsNewCardPresent()) { //check if tag is present
         for (int j = 0; j < 3; j++) {
           if (rfid.PICC_ReadCardSerial()) { //check if tag is read successfully
             MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
             if (piccType == MFRC522::PICC_TYPE_MIFARE_1K) { //check if tag is legal (MIFARE 1K)
               if (opmode == 1) {
-                if (castString().equals(rfuid)) { //compare with stored
+                if (castString().equals((String)rfuid)) { //compare with stored
                   Serial.print("ALLGOOD*");
                   ok = true;
                 } else {
                   Serial.print("UNAUTHPK*");
-                  infract = true;
+                  infract = 1;
                 }
               } else { //castString and print to serial
                 Serial.print(castString());
@@ -137,9 +150,9 @@ void occupy() {
               }
             } else {
               Serial.print("ILLGLTAG*");
-              infract = true;
+              infract = 1;
             }
-            if (infract || ok) //infraction or ALLGOOD/sent to serial
+            if (infract == 1 || ok) //infraction or ALLGOOD/sent to serial
               break;
             delay(1000); //delay before next read attempt
           } else {
@@ -151,27 +164,27 @@ void occupy() {
             }
           }
         }
-        if (infract || ok)
+        if (infract == 1 || ok)
           break;
-        delay(1000); //delay before next present check
       } else {
         present++;
         //NOCARD if tag not found this number of times
         if (present == 2) {
           Serial.print("NOCARD*");
-          infract = true;
+          infract = 1;
         }
       }
     }
+    rfid.PCD_SoftPowerDown(); //put mfrc522 to sleep
   }
 }
 
 //free parking spot
-void freed() {
-  occ = false;
+void free() {
+  occ = 0;
   Serial.print("FREE*");
-  if (infract) {
-    infract = false;
+  if (infract == 1) {
+    infract = 0;
   }
 }
 
@@ -190,4 +203,8 @@ String castString() {
     }
   }
   return str;
+}
+
+//never reached, only here to placate the compiler
+void loop() {
 }

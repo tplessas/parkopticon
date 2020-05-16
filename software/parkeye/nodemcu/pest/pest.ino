@@ -97,7 +97,7 @@ void write() {
       flag = false;
     }
     else if (opmode == 2) {
-      Serial.println("Wrote: RFID Remote");
+      Serial.println("Wrote: RFID Serial");
       EEPROM.write(5, 2);
       flag = false;
     }
@@ -141,6 +141,10 @@ void write() {
         flag2 = true;
       }
     }
+  } else { //write zeroes to indicate not filled
+    for (int i = 0; i < 11; i++) {
+      EEPROM.write(i + 6, 0);
+    }
   }
 
   EEPROM.commit();
@@ -162,7 +166,7 @@ void read() {
   } else if (EEPROM.read(5) == 1) {
     Serial.print("RFID Stored");
   } else {
-    Serial.print("RFID Remote");
+    Serial.print("RFID Serial");
   }
   Serial.println();
   Serial.print("RFID UID: ");
@@ -182,7 +186,7 @@ void dump() {
   Serial.print(" *   ");
   for (int i = 0; i < 16; i++) {
     if (i < 9) {
-    Serial.print(String(i + 1) + "   "); //one digit, three spaces
+      Serial.print(String(i + 1) + "   "); //one digit, three spaces
     }
     else {
       Serial.print(String(i + 1) + "  "); //two digits, two spaces
