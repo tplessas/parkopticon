@@ -29,16 +29,21 @@
 #include <EEPROM.h>
 #include <RTCVars.h>
 #include <ESP.h>
+#include <ESP8266WiFi.h>
 
-//declare mfrc pins
+//declare mfrc522
 MFRC522 rfid(4, 5);
 MFRC522::MIFARE_Key key;
 
-//battery setup
-const double VFULL = 7.2; //nominal voltage
-const double VEMPTY = 5; //empty voltage
-
 RTCVars state; // stores variables in RTCmem, persistence after deep sleep-reset cycle
+
+//AP connection info
+const char* ssid     = "WiFi_2.4G-03128";
+const char* password = "AV9je7CPX6EKzsXh";
+
+//server connection info
+const char* host = "192.168.2.8";
+const uint16_t port = 42069;
 
 //config variables
 char uid[6]; //ParkEye UID
@@ -48,6 +53,9 @@ char rfuid[12]; //RFID tag UID, always loaded no matter the opmode
 //status variables as integers for RTCmem storage
 int occ;
 int infract; //infraction status, used in rfid subroutine
+
+//PMP message to be sent to edge node
+String message = "";
 
 void setup() {
   //init serial at 74880 as debug port, NOT COMPATIBLE WITH edgeWare Serial
@@ -67,35 +75,47 @@ void setup() {
   if (!state.loadFromRTC()) { //cold boot, load config from EEPROM
     EEPROM.begin(512);
     delay(5000);
-    Serial.print("HARD*"); //as in hard reset
+    Serial.print("HARD/"); //as in hard reset
 
     //reading and printing uid
     uid[5] = 0x00; //null char, end of byte array
     for (int i = 0; i < 5; i++) {
       uid[i] = EEPROM.read(i);
     }
-    Serial.print(uid);
+    message = message + uid + "*";
 
     //reading and printing opmode
     opmode = EEPROM.read(5);
-    Serial.print(opmode);
+    message += opmode;
 
     //reading and printing rfuid
     rfuid[11] = 0x00; //null char, end of byte array
     for (int i = 0; i < 11; i++) {
       rfuid[i] = EEPROM.read(i + 6);
     }
-    Serial.print(rfuid);
-    Serial.print("*");
+    message = message + rfuid + "*";
 
     free(); //called to init status vars to false, !!!NO CAR IN PLACE!!!
     state.saveToRTC();
     EEPROM.end();
+    sendMessage();
     ESP.deepSleep(0); //sleep until rst LOW
   } else { //soft reset, variables in memory
-    Serial.print("SOFT*"); //as in soft reset
+    Serial.print("SOFT/"); //as in soft reset
+    message = message + uid + "*";
     flip();
+    sendMessage();
     ESP.deepSleep(0); //sleep until rst LOW
+  }
+}
+
+//opmode 1, 2: init SPI bus for MFRC522 and setting key to default
+//TODO store key in config?
+void mfrc522init() {
+  SPI.begin();
+  rfid.PCD_Init();
+  for (byte i = 0; i < 6; i++) {
+    key.keyByte[i] = 0xFF;
   }
 }
 
@@ -109,20 +129,10 @@ void flip() {
   state.saveToRTC();
 }
 
-//opmode 1, 2: init SPI bus for MFRC522 and setting key to default
-//TODO store key in config?
-void mfrc522init() {
-  SPI.begin();
-  rfid.PCD_Init();
-  for (byte i = 0; i < 6; i++) {
-    key.keyByte[i] = 0xFF;
-  }
-}
-
 //occupy parking spot
 void occupy() {
   occ = 1;
-  Serial.print("OCCD*");
+  message += "OCCD*";
 
   //opmode 1,2: rfid subroutine
   //TODO add reread attempts to ensure successful reading
@@ -142,19 +152,18 @@ void occupy() {
             if (piccType == MFRC522::PICC_TYPE_MIFARE_1K) { //check if tag is legal (MIFARE 1K)
               if (opmode == 1) {
                 if (castString().equals((String)rfuid)) { //compare with stored
-                  Serial.print("ALLGOOD*");
+                  message += "ALLGOOD*";
                   ok = true;
                 } else {
-                  Serial.print("UNAUTHPK*");
+                  message += "UNAUTHPK*";
                   infract = 1;
                 }
               } else { //castString and print to serial
-                Serial.print(castString());
-                Serial.print("*");
+                message += castString() + "*";
                 ok = true;
               }
             } else {
-              Serial.print("ILLGLTAG*");
+              message += "ILLGLTAG*";
               infract = 1;
             }
             if (infract == 1 || ok) //infraction or ALLGOOD/sent to serial
@@ -164,7 +173,9 @@ void occupy() {
             read++;
             //RFIDFAIL if tag not read this number of times
             if (read == 3) {
-              Serial.print("RFIDFAIL*");
+              message += "RFIDFAIL*";
+              rfid.PCD_SoftPowerDown(); //put mfrc522 to sleep
+              sendMessage();
               ESP.deepSleep(0);
             }
           }
@@ -175,7 +186,7 @@ void occupy() {
         present++;
         //NOCARD if tag not found this number of times
         if (present == 2) {
-          Serial.print("NOCARD*");
+          message += "NOCARD*";
           infract = 1;
         }
       }
@@ -187,7 +198,7 @@ void occupy() {
 //free parking spot
 void free() {
   occ = 0;
-  Serial.print("FREE*");
+  message += "FREE*";
   if (infract == 1) {
     infract = 0;
   }
@@ -208,6 +219,28 @@ String castString() {
     }
   }
   return str;
+}
+
+void sendMessage() {
+  Serial.print(message);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  //wait till conncected
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500); //giving esp8266 cpu time to handle network stack
+  }
+  Serial.print("/WIFICONNECTED");
+
+  WiFiClient client;
+  if (!client.connect(host, port)) {
+    Serial.print("/SERVERFAIL");
+    ESP.deepSleep(0);
+  }
+  client.println(message);
+  Serial.print("/SENT");
+  client.stop();
 }
 
 //never reached, only here to placate the compiler
