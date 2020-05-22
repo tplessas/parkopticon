@@ -28,10 +28,15 @@
 #include <MFRC522.h>
 #include <EEPROM.h>
 #include <RTCVars.h>
+#include <ESP.h>
 
 //declare mfrc pins
 MFRC522 rfid(4, 5);
 MFRC522::MIFARE_Key key;
+
+//battery setup
+const double VFULL = 7.2; //nominal voltage
+const double VEMPTY = 5; //empty voltage
 
 RTCVars state; // stores variables in RTCmem, persistence after deep sleep-reset cycle
 
