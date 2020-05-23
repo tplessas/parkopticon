@@ -39,11 +39,9 @@ public class Server extends Thread {
 
 		try {
 			serverSocket = new ServerSocket(42069);
-			System.out.println("oof");
 
 			while (true) {
 				Socket socket = serverSocket.accept();
-				System.out.println("ouch");
 
 				new ServerThread(socket).start();
 			}

@@ -67,7 +67,8 @@ String message;
 void setup() {
   voltage = analogRead(A0); //first off to get correct measurement
 
-  Serial.begin(74880); //init serial at 74880 as debug port, NOT COMPATIBLE WITH edgeWare Serial
+  Serial.begin(74880); //init serial at 74880 as debug port, NOT COMPATIBLE WITH edgeWare 
+  Serial.println("Reset reason:" + ESP.getResetReason());
 
   //pass variable pointers to RTC state object
   for (int i = 0; i < 6; i++) {
@@ -82,7 +83,6 @@ void setup() {
 
   if (!state.loadFromRTC()) { //cold boot, load config from EEPROM
     EEPROM.begin(512);
-    delay(5000);
     Serial.print("HARD/"); //as in hard reset
 
     //reading and printing uid
@@ -249,9 +249,7 @@ void contactServer() {
   Serial.print("/SENT");
 
   String answer = client.readStringUntil('\n');
-  Serial.print(answer);
-  Serial.print(answer.length());
-  if(answer.equals("CONFIG?\r")) {
+  if(answer.equals("CONFIG?")) {
     Serial.print("/CONFIG?/");
     appendConfig();
     Serial.print(message);
@@ -262,7 +260,7 @@ void contactServer() {
 }
 
 void appendConfig() {
-  message = (String)opmode + (String)rfuid + "*";
+  message = (String)opmode + (String)rfuid;
 }
 
 //never reached, only here to placate the compiler

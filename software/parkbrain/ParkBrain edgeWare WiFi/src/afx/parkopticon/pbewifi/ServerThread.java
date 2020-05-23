@@ -50,7 +50,8 @@ public class ServerThread extends Thread {
 			ParkEye eye = ParkEye.getEyeByUID(messages[0]);
 			int battery = Integer.parseInt(messages[1]);
 			if (eye == null) { // get config and create new ParkEye
-				out.println("CONFIG?");
+				out.print("CONFIG?\n");
+				out.flush();
 				String config = in.readLine();
 				int opmode = Character.getNumericValue(config.charAt(0));
 				String rfuid = config.substring(1, 12);
@@ -61,7 +62,8 @@ public class ServerThread extends Thread {
 				eye.setBatterypercent(battery);
 				parseMessages(eye, messages);
 				if (eye.getConfigbuffer() != null) { // send new config
-					out.println("NEWCONFIG");
+					out.print("NEWCONFIG\n");
+					out.flush();
 					out.println(eye.getConfigbuffer());
 					eye.setConfigbuffer(null);
 				}
