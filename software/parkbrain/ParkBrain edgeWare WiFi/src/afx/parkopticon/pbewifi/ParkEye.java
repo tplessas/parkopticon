@@ -1,6 +1,5 @@
 package afx.parkopticon.pbewifi;
 
-import java.io.IOException;
 import java.util.ArrayList;
 
 public class ParkEye {
@@ -14,8 +13,11 @@ public class ParkEye {
 	private boolean occ;
 	private int infract = 0;
 	private String readid;
+	private int batterypercent;
 
 	private boolean rfid_health = true;
+	
+	private String configbuffer;
 
 	public ParkEye(String uid, int opmode, String rfuid) {
 		super();
@@ -40,6 +42,22 @@ public class ParkEye {
 
 	public static void setEyes(ArrayList<ParkEye> eyes) {
 		ParkEye.eyes = eyes;
+	}
+
+	public int getBatterypercent() {
+		return batterypercent;
+	}
+
+	public void setBatterypercent(int batterypercent) {
+		this.batterypercent = batterypercent;
+	}
+
+	public String getConfigbuffer() {
+		return configbuffer;
+	}
+
+	public void setConfigbuffer(String configbuffer) {
+		this.configbuffer = configbuffer;
 	}
 
 	public int getInfract() {

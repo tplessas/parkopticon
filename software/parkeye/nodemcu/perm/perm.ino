@@ -1,27 +1,29 @@
-// ParkEye Runtime with Messaging (PERM)
-// Created by Theodoros Plessas (8160192) for Artifex Electronics
-//
-// MIT License
-//
-// Copyright (c) 2020 Theodoros Plessas
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
+/*
+   ParkEye Runtime with Messaging (PERM)
+   Created by Theodoros Plessas (8160192) for Artifex Electronics
+
+   MIT License
+
+   Copyright (c) 2020 Theodoros Plessas
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+*/
 
 //libraries
 #include <SPI.h>
@@ -42,8 +44,13 @@ const char* ssid     = "WiFi_2.4G-03128";
 const char* password = "AV9je7CPX6EKzsXh";
 
 //server connection info
-const char* host = "192.168.2.8";
+const char* host = "192.168.2.5";
 const uint16_t port = 42069;
+
+//2x18650 batteries
+const double vcc_nominal = 8.3;
+const double vcc_empty = 5.0;
+int voltage; //read from A0 using voltage divider, 1024(3.3v) top
 
 //config variables
 char uid[6]; //ParkEye UID
@@ -58,8 +65,9 @@ int infract; //infraction status, used in rfid subroutine
 String message = "";
 
 void setup() {
-  //init serial at 74880 as debug port, NOT COMPATIBLE WITH edgeWare Serial
-  Serial.begin(74880);
+  voltage = analogRead(A0); //first off to get correct measurement
+
+  Serial.begin(74880); //init serial at 74880 as debug port, NOT COMPATIBLE WITH edgeWare Serial
 
   //pass variable pointers to RTC state object
   for (int i = 0; i < 6; i++) {
@@ -82,7 +90,7 @@ void setup() {
     for (int i = 0; i < 5; i++) {
       uid[i] = EEPROM.read(i);
     }
-    message = message + uid + "*";
+    message = message + uid + "*" + ((voltage / 1024) * 100) + "*"; //beginning message with uid and battery percentage from voltage read
 
     //reading and printing opmode
     opmode = EEPROM.read(5);
@@ -102,7 +110,7 @@ void setup() {
     ESP.deepSleep(0); //sleep until rst LOW
   } else { //soft reset, variables in memory
     Serial.print("SOFT/"); //as in soft reset
-    message = message + uid + "*";
+    message = message + uid + "*" + ((voltage / 1024) * 100) + "*";  //beginning message with uid and battery percentage from voltage read
     flip();
     sendMessage();
     ESP.deepSleep(0); //sleep until rst LOW
@@ -229,7 +237,8 @@ void sendMessage() {
 
   //wait till conncected
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500); //giving esp8266 cpu time to handle network stack
+    Serial.print(" . ");
+    delay(1000); //giving esp8266 cpu time to handle wifi stack
   }
   Serial.print("/WIFICONNECTED");
 

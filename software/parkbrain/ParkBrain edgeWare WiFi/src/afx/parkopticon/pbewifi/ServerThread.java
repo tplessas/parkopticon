@@ -13,47 +13,44 @@ public class ServerThread extends Thread {
 	public void run() {
 		try {
 			BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-			String input;
-			String uid;
+			//PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
 			String[] messages;
-
-			input = reader.readLine();
-			uid = input.split("*")[0];
-			messages =  input.split("*");
-			for (String msg : messages) {
-				if (msg.length() == 18) {
-					uid = msg.substring(0, 5);
-
-					int opmode = Character.getNumericValue(msg.charAt(5));
-
-					String rfuid = msg.substring(6, 17);
-
-					System.out.println(uid + " " + opmode + " " + rfuid + " ");
-				} else if (msg.equals("OCCD*")) {
-					System.out.println("OCCD*");
-				} else if (msg.equals("FREE*")) {
-					System.out.println("FREE*");
-				} else {
-					if (msg.equals("ALLGOOD*")) {
-						System.out.println("ALLGOOD*");
-					} else if (msg.equals("UNAUTHPK*")) {
-						System.out.println("UNAUTHPK*");
-					} else if (msg.equals("NOCARD*")) {
-						System.out.println("NOCARD*");
-					} else if (msg.equals("ILLGLTAG*")) {
-						System.out.println("ILLGLTAG*");
-					} else if (msg.equals("RFIDFAIL*")) {
-						System.out.println("RFIDFAIL*");
+			
+			messages = reader.readLine().split("\\*");
+			ParkEye eye = ParkEye.getEyeByUID(messages[0]);
+			int battery = Integer.parseInt(messages[1]);
+			if (eye == null) {
+				int opmode = Character.getNumericValue(messages[2].charAt(0));
+				String rfuid = messages[2].substring(1, 12);
+				ParkEye nueye = new ParkEye(messages[0], opmode, rfuid);
+				nueye.setBatterypercent(battery);
+				System.out.println(battery + "-");
+			} else {
+				eye.setBatterypercent(battery);
+				System.out.println(battery + ".");
+				for (String msg : messages) {
+					if (msg.equals("OCCD")) {
+						eye.setOcc(true);
+					} else if (msg.equals("FREE")) {
+						eye.setOcc(false);
+						eye.setInfract(0);
 					} else {
+						if (msg.equals("ALLGOOD")) {
+						} else if (msg.equals("UNAUTHPK")) {
+							eye.setInfract(1);
+						} else if (msg.equals("NOCARD")) {
+							eye.setInfract(2);
+						} else if (msg.equals("ILLGLTAG")) {
+							eye.setInfract(3);
+						} else if (msg.equals("RFIDFAIL")) {
+							eye.setRfid_health(false);
+						} else {
+						}
 					}
 				}
 			}
-
 			socket.close();
 		} catch (IOException ex) {
-			System.out.println("Server exception: " + ex.getMessage());
-			ex.printStackTrace();
 		}
 	}
 }

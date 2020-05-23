@@ -22,18 +22,19 @@ import com.googlecode.lanterna.gui2.dialogs.MessageDialog;
 import com.googlecode.lanterna.gui2.dialogs.MessageDialogButton;
 import com.googlecode.lanterna.gui2.table.Table;
 import com.googlecode.lanterna.screen.Screen;
-import com.googlecode.lanterna.screen.TerminalScreen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
-import com.googlecode.lanterna.terminal.ansi.UnixTerminal;
+//import com.googlecode.lanterna.screen.TerminalScreen;
+//import com.googlecode.lanterna.terminal.ansi.UnixTerminal;
 
 public class UserInterface extends Thread {
 
-	static Screen screen = null;
-	static MultiWindowTextGUI gui = null;
+	private static Screen screen = null;
+	private static MultiWindowTextGUI gui = null;
+	private static final String VERSION_NUMBER = "0.2a";
 
 	public void run() {
 		DefaultTerminalFactory factory = new DefaultTerminalFactory(System.out, System.in, Charset.forName("UTF8"))
-				.setInitialTerminalSize(new TerminalSize(150, 50)).setTerminalEmulatorTitle("Artifex PBSW 0.1a");
+				.setInitialTerminalSize(new TerminalSize(150, 50)).setTerminalEmulatorTitle("Artifex PBeWiFi " + VERSION_NUMBER);
 		try {
 			screen = factory.createScreen();
 			// screen = new TerminalScreen(new UnixTerminal(System.in, System.out,
@@ -42,21 +43,33 @@ public class UserInterface extends Thread {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		gui = new MultiWindowTextGUI(screen);
+		setGui(new MultiWindowTextGUI(screen));
 
-		gui.setTheme(com.googlecode.lanterna.bundle.LanternaThemes.getRegisteredTheme("default"));
+		getGui().setTheme(com.googlecode.lanterna.bundle.LanternaThemes.getRegisteredTheme("default"));
 		StartupWindow startup = new StartupWindow();
 		startup.setHints(Arrays.asList(Window.Hint.CENTERED));
-		gui.addWindowAndWait(startup);
+		getGui().addWindowAndWait(startup);
 		MainView main = new MainView();
 		main.setHints(Arrays.asList(Window.Hint.CENTERED));
-		gui.addWindowAndWait(main);
+		getGui().addWindowAndWait(main);
 		try {
 			screen.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
+	}
+
+	public static MultiWindowTextGUI getGui() {
+		return gui;
+	}
+
+	public static void setGui(MultiWindowTextGUI gui) {
+		UserInterface.gui = gui;
+	}
+
+	public static String getVersionNumber() {
+		return VERSION_NUMBER;
 	}
 }
 
@@ -97,7 +110,7 @@ class StartupWindow extends BasicWindow {
 				logo.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.CENTER, GridLayout.Alignment.CENTER,
 						true, false, 2, 1));
 
-				Label version = new Label("Version 0.2a\n");
+				Label version = new Label("Version " + UserInterface.getVersionNumber() + "\n");
 				version.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.END, GridLayout.Alignment.CENTER,
 						false, false, 1, 1));
 
@@ -115,7 +128,7 @@ class StartupWindow extends BasicWindow {
 				contentPanel.addComponent(sinit);
 				setComponent(contentPanel);
 				try {
-					Thread.sleep(2000);
+					Thread.sleep(1000);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -138,7 +151,7 @@ class StartupWindow extends BasicWindow {
 
 class MainView extends BasicWindow {
 
-	public static Table<String> table = new Table<String>("UID", "Status", "Infraction", "Health", "Opmode", "RFID");
+	private static Table<String> table = new Table<String>("UID", "Status", "Infraction", "Health", "Opmode", "Battery", "RFID");
 
 	public MainView() {
 		super("System Overview");
@@ -153,8 +166,8 @@ class MainView extends BasicWindow {
 				Button about = new Button("About", new Runnable() {
 					@Override
 					public void run() {
-						MessageDialog.showMessageDialog(UserInterface.gui, "About",
-								"ParkBrain edgeWare v0.1a\n\nProof-of-concept implementation of\n"
+						MessageDialog.showMessageDialog(UserInterface.getGui(), "About",
+								"ParkBrain edgeWare " + UserInterface.getVersionNumber() + "\n\nProof-of-concept implementation of\n"
 										+ "edge node software for Parkopticon.\n\n(c) 2020 Artifex Electronics\nDistributed under the terms of the MIT License.\n\nThird-party software:\n"
 										+ "lanterna@3.0.2\nCopyright (C) 2010-2020 Martin Berglund\nDistributed under the terms of the\nGNU Lesser General Public License, version 3.",
 								MessageDialogButton.valueOf("OK"));
@@ -178,7 +191,7 @@ class MainView extends BasicWindow {
 				table.setPreferredSize(new TerminalSize(80, 10));
 				contentPanel.addComponent(table);
 				setComponent(contentPanel);
-				table.getTableModel().addRow("1", "1", "1", "1", "1", "1"); // So that tableUpdate can clear the first
+				table.getTableModel().addRow("1", "1", "1", "1", "1", "1", "1"); // So that tableUpdate can clear the first
 																			// time without exceptions.
 
 				Runnable tableUpdate = new Runnable() {
@@ -216,13 +229,11 @@ class MainView extends BasicWindow {
 							String health = null;
 							if (!e.isRfid_health()) {
 								health = "RFID FAIL";
-							} else if (!e.isSr04_health()) {
-								health = "SR04 FAIL";
 							} else {
 								health = "Good";
 							}
 
-							table.getTableModel().addRow(e.getUid(), occ, infract, health, opmode, e.getRfuid());
+							table.getTableModel().addRow(e.getUid(), occ, infract, health, opmode, e.getBatterypercent() + "%", e.getRfuid());
 						}
 					}
 				};
