@@ -62,7 +62,7 @@ int occ;
 int infract; //infraction status, used in rfid subroutine
 
 //PMP message to be sent to edge node
-String message = "";
+String message;
 
 void setup() {
   voltage = analogRead(A0); //first off to get correct measurement
@@ -90,29 +90,27 @@ void setup() {
     for (int i = 0; i < 5; i++) {
       uid[i] = EEPROM.read(i);
     }
-    message = message + uid + "*" + ((voltage / 1024) * 100) + "*"; //beginning message with uid and battery percentage from voltage read
+    message = (String)uid + "*" + (String)((voltage / 1024) * 100) + "*"; //beginning message with uid and battery percentage from voltage read
 
     //reading and printing opmode
     opmode = EEPROM.read(5);
-    message += opmode;
 
     //reading and printing rfuid
     rfuid[11] = 0x00; //null char, end of byte array
     for (int i = 0; i < 11; i++) {
       rfuid[i] = EEPROM.read(i + 6);
     }
-    message = message + rfuid + "*";
 
     free(); //called to init status vars to false, !!!NO CAR IN PLACE!!!
     state.saveToRTC();
     EEPROM.end();
-    sendMessage();
+    contactServer();
     ESP.deepSleep(0); //sleep until rst LOW
   } else { //soft reset, variables in memory
     Serial.print("SOFT/"); //as in soft reset
-    message = message + uid + "*" + ((voltage / 1024) * 100) + "*";  //beginning message with uid and battery percentage from voltage read
+    message = (String)uid + "*" + (String)((voltage / 1024) * 100) + "*";  //beginning message with uid and battery percentage from voltage read
     flip();
-    sendMessage();
+    contactServer();
     ESP.deepSleep(0); //sleep until rst LOW
   }
 }
@@ -183,7 +181,7 @@ void occupy() {
             if (read == 3) {
               message += "RFIDFAIL*";
               rfid.PCD_SoftPowerDown(); //put mfrc522 to sleep
-              sendMessage();
+              contactServer();
               ESP.deepSleep(0);
             }
           }
@@ -229,7 +227,7 @@ String castString() {
   return str;
 }
 
-void sendMessage() {
+void contactServer() {
   Serial.print(message);
 
   WiFi.mode(WIFI_STA);
@@ -249,7 +247,22 @@ void sendMessage() {
   }
   client.println(message);
   Serial.print("/SENT");
+
+  String answer = client.readStringUntil('\n');
+  Serial.print(answer);
+  Serial.print(answer.length());
+  if(answer.equals("CONFIG?\r")) {
+    Serial.print("/CONFIG?/");
+    appendConfig();
+    Serial.print(message);
+    client.println(message);
+    Serial.print("/SENT");
+  }
   client.stop();
+}
+
+void appendConfig() {
+  message = (String)opmode + (String)rfuid + "*";
 }
 
 //never reached, only here to placate the compiler

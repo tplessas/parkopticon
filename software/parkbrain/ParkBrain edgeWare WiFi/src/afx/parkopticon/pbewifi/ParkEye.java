@@ -1,3 +1,30 @@
+/*
+   ParkBrain edgeWare WiFi
+   Created by Theodoros Plessas (8160192) for Artifex Electronics
+
+   MIT License
+
+   Copyright (c) 2020 Theodoros Plessas
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+*/
+
 package afx.parkopticon.pbewifi;
 
 import java.util.ArrayList;
@@ -12,7 +39,7 @@ public class ParkEye {
 
 	private boolean occ;
 	private int infract = 0;
-	private String readid;
+	//private String readid;
 	private int batterypercent;
 
 	private boolean rfid_health = true;
@@ -21,9 +48,9 @@ public class ParkEye {
 
 	public ParkEye(String uid, int opmode, String rfuid) {
 		super();
-		this.uid = uid;
-		this.opmode = opmode;
-		this.rfuid = rfuid;
+		setUid(uid);
+		setOpmode(opmode);
+		setRfuid(rfuid);
 		eyes.add(this);
 	}
 	
@@ -106,14 +133,6 @@ public class ParkEye {
 
 	public void setRfid_health(boolean rfid_health) {
 		this.rfid_health = rfid_health;
-	}
-
-	public String getReadid() {
-		return readid;
-	}
-
-	public void setReadid(String readid) {
-		this.readid = readid;
 	}
 
 	@Override
