@@ -25,6 +25,12 @@
    SOFTWARE.
 */
 
+/*
+									!!!READER BEWARE!!!
+	Do not, under threat of madness, attempt to read this code without a drink in hand.
+									 It is *un-god-ly*.
+ */
+
 package afx.parkopticon.pbewifi;
 
 import java.io.IOException;
