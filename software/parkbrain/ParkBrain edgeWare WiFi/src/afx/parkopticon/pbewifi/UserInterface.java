@@ -40,11 +40,14 @@ import java.util.concurrent.TimeUnit;
 import com.googlecode.lanterna.TerminalSize;
 import com.googlecode.lanterna.gui2.BasicWindow;
 import com.googlecode.lanterna.gui2.Button;
+import com.googlecode.lanterna.gui2.ComboBox;
 import com.googlecode.lanterna.gui2.GridLayout;
 import com.googlecode.lanterna.gui2.Label;
 import com.googlecode.lanterna.gui2.MultiWindowTextGUI;
 import com.googlecode.lanterna.gui2.Panel;
+import com.googlecode.lanterna.gui2.TextBox;
 import com.googlecode.lanterna.gui2.Window;
+import com.googlecode.lanterna.gui2.dialogs.ActionListDialog;
 import com.googlecode.lanterna.gui2.dialogs.MessageDialog;
 import com.googlecode.lanterna.gui2.dialogs.MessageDialogButton;
 import com.googlecode.lanterna.gui2.table.Table;
@@ -61,7 +64,8 @@ public class UserInterface extends Thread {
 
 	public void run() {
 		DefaultTerminalFactory factory = new DefaultTerminalFactory(System.out, System.in, Charset.forName("UTF8"))
-				.setInitialTerminalSize(new TerminalSize(150, 50)).setTerminalEmulatorTitle("Artifex PBeWiFi " + VERSION_NUMBER);
+				.setInitialTerminalSize(new TerminalSize(150, 50))
+				.setTerminalEmulatorTitle("Artifex PBeWiFi " + VERSION_NUMBER);
 		try {
 			screen = factory.createScreen();
 			// screen = new TerminalScreen(new UnixTerminal(System.in, System.out,
@@ -108,8 +112,6 @@ class StartupWindow extends BasicWindow {
 		t = new Thread() {
 			public void run() {
 				Panel contentPanel = new Panel(new GridLayout(2));
-				GridLayout gridLayout = (GridLayout) contentPanel.getLayoutManager();
-				gridLayout.setHorizontalSpacing(3);
 
 				Label name = new Label("Artifex Electronics");
 				name.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.CENTER, // Horizontal alignment in
@@ -118,9 +120,9 @@ class StartupWindow extends BasicWindow {
 																							// larger than the
 																							// component's preferred
 																							// size
-						GridLayout.Alignment.BEGINNING, // Vertical alignment in the grid cell if the cell is larger
+						GridLayout.Alignment.CENTER, // Vertical alignment in the grid cell if the cell is larger
 														// than the component's preferred size
-						true, // Give the component extra horizontal space if available
+						false, // Give the component extra horizontal space if available
 						false, // Give the component extra vertical space if available
 						2, // Horizontal span
 						1)); // Vertical spanF
@@ -135,19 +137,19 @@ class StartupWindow extends BasicWindow {
 								+ "                                                             __/ |                            \r\n"
 								+ "                                                            |___/                             ");
 				logo.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.CENTER, GridLayout.Alignment.CENTER,
-						true, false, 2, 1));
+						true, true, 2, 1));
 
-				Label version = new Label("Version " + UserInterface.getVersionNumber() + "\n");
-				version.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.END, GridLayout.Alignment.CENTER,
-						false, false, 1, 1));
+				Label version = new Label("Version " + (String) UserInterface.getVersionNumber());
+				version.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.BEGINNING,
+						GridLayout.Alignment.CENTER, true, true, 1, 1));
 
-				Label sinit = new Label("Initializing socket server...");
-				version.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.END, GridLayout.Alignment.CENTER,
-						false, false, 1, 1));
+				Label sinit = new Label("Initializing PMP server...");
+				sinit.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.END, GridLayout.Alignment.CENTER,
+						true, true, 1, 1));
 
 				Label ok = new Label("All systems nominal!");
-				version.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.END, GridLayout.Alignment.CENTER,
-						false, false, 1, 1));
+				ok.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.END, GridLayout.Alignment.CENTER,
+						true, true, 1, 1));
 
 				contentPanel.addComponent(name);
 				contentPanel.addComponent(logo);
@@ -178,7 +180,8 @@ class StartupWindow extends BasicWindow {
 
 class MainView extends BasicWindow {
 
-	private static Table<String> table = new Table<String>("UID", "Status", "Infraction", "Health", "Opmode", "Battery", "RFID");
+	private static Table<String> table = new Table<String>("UID", "Status", "Infraction", "Health", "Opmode", "Battery",
+			"RFID");
 
 	public MainView() {
 		super("System Overview");
@@ -186,17 +189,15 @@ class MainView extends BasicWindow {
 		t = new Thread() {
 			public void run() {
 				Panel contentPanel = new Panel(new GridLayout(2));
-				GridLayout gridLayout = (GridLayout) contentPanel.getLayoutManager();
-				gridLayout.setHorizontalSpacing(3);
 				ScheduledExecutorService executor = Executors.newScheduledThreadPool(3);
 
 				Button about = new Button("About", new Runnable() {
 					@Override
 					public void run() {
-						MessageDialog.showMessageDialog(UserInterface.getGui(), "About",
-								"ParkBrain edgeWare " + UserInterface.getVersionNumber() + "\n\nProof-of-concept implementation of\n"
-										+ "edge node software for Parkopticon.\n\n(c) 2020 Artifex Electronics\nDistributed under the terms of the MIT License.\n\nThird-party software:\n"
-										+ "lanterna@3.0.2\nCopyright (C) 2010-2020 Martin Berglund\nDistributed under the terms of the\nGNU Lesser General Public License, version 3.",
+						MessageDialog.showMessageDialog(UserInterface.getGui(), "About", "ParkBrain edgeWare WiFi "
+								+ UserInterface.getVersionNumber() + "\n\nProof-of-concept implementation of\n"
+								+ "edge node software for Parkopticon.\n\n(c) 2020 Theodoros Plessas for Artifex Electronics\nDistributed under the terms of the MIT License.\n\nThird-party software:\n"
+								+ "lanterna@3.0.2\nCopyright (C) 2010-2020 Martin Berglund\nDistributed under the terms of the\nGNU Lesser General Public License, version 3.",
 								MessageDialogButton.valueOf("OK"));
 					}
 				});
@@ -216,10 +217,12 @@ class MainView extends BasicWindow {
 				table.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.CENTER,
 						GridLayout.Alignment.CENTER, true, true, 2, 1));
 				table.setPreferredSize(new TerminalSize(80, 10));
+				table.setEscapeByArrowKey(true);
 				contentPanel.addComponent(table);
 				setComponent(contentPanel);
-				table.getTableModel().addRow("1", "1", "1", "1", "1", "1", "1"); // So that tableUpdate can clear the first
-																			// time without exceptions.
+				table.getTableModel().addRow("1", "1", "1", "1", "1", "1", "1"); // Placates
+																					// table.getTableModel().clear() the
+																					// first time.
 
 				Runnable tableUpdate = new Runnable() {
 					public void run() {
@@ -253,28 +256,46 @@ class MainView extends BasicWindow {
 								opmode = "RFID Remote";
 								break;
 							}
-							String health = null;
-							if (!eye.isRfid_health()) {
-								health = "RFID FAIL";
-							} else {
-								health = "Good";
-							}
+							String health = eye.isRfid_health() ? "Good" : "RFID FAIL";
 
-							table.getTableModel().addRow(eye.getUid(), occ, infract, health, opmode, eye.getBatterypercent() + "%", eye.getRfuid());
+							table.getTableModel().addRow(eye.getUid(), occ, infract, health, opmode,
+									eye.getBatterypercent() + "%", eye.getRfuid());
 						}
 					}
 				};
 				executor.scheduleAtFixedRate(tableUpdate, 0, 1, TimeUnit.SECONDS);
 
+				Runnable itemSelect = new Runnable() {
+					public void run() {
+						if (table.getTableModel().getRowCount() > 0) {
+							String uid = table.getTableModel().getCell(0, table.getSelectedRow());
+							Runnable newConfig = new Runnable() {
+								public void run() {
+									ConfigWizard wiz = new ConfigWizard(uid);
+									wiz.setCloseWindowWithEscape(true);
+									wiz.setHints(Arrays.asList(Window.Hint.CENTERED));
+									UserInterface.getGui().addWindow(wiz);
+								}
+
+								public String toString() {
+									return "New config";
+								}
+							};
+							ActionListDialog.showDialog(UserInterface.getGui(), uid, "", newConfig);
+						}
+					}
+				};
+				table.setSelectAction(itemSelect);
+
 				Panel connsPanel = new Panel(new GridLayout(1));
 				connsPanel.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.BEGINNING,
-						GridLayout.Alignment.CENTER, false, false, 1, 1));
+						GridLayout.Alignment.BEGINNING, true, true, 1, 1));
 				contentPanel.addComponent(connsPanel);
 				Runnable connsUpdate = new Runnable() {
 					public void run() {
-						Label conns = new Label("Current connections: " + String.valueOf(ParkEye.getEyes().size()));
+						Label conns = new Label("ParkEyes connected: " + String.valueOf(ParkEye.getEyes().size()));
 						conns.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.BEGINNING,
-								GridLayout.Alignment.CENTER, false, false, 1, 1));
+								GridLayout.Alignment.BEGINNING, true, true, 1, 1));
 						connsPanel.addComponent(conns);
 						try {
 							Thread.sleep(1000);
@@ -288,7 +309,7 @@ class MainView extends BasicWindow {
 
 				Panel timePanel = new Panel(new GridLayout(1));
 				timePanel.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.END,
-						GridLayout.Alignment.CENTER, false, false, 1, 1));
+						GridLayout.Alignment.CENTER, true, true, 1, 1));
 				contentPanel.addComponent(timePanel);
 				Runnable timeUpdate = new Runnable() {
 					public void run() {
@@ -306,6 +327,95 @@ class MainView extends BasicWindow {
 					}
 				};
 				executor.scheduleAtFixedRate(timeUpdate, 0, 1, TimeUnit.SECONDS);
+			}
+		};
+		t.start();
+	}
+}
+
+class ConfigWizard extends BasicWindow {
+
+	public ConfigWizard(String uid) {
+		super("New config");
+		Thread t = new Thread() {
+			public void run() {
+				Panel contentPanel = new Panel(new GridLayout(2));
+				GridLayout gridLayout = (GridLayout) contentPanel.getLayoutManager();
+				gridLayout.setVerticalSpacing(1);
+
+				Label description = new Label(
+						"The new config will be staged and delivered\nthe next time the ParkEye contacts the server.");
+				description.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.BEGINNING,
+						GridLayout.Alignment.BEGINNING, true, true, 2, 1));
+
+				Label uidLabel = new Label("UID:");
+				uidLabel.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.BEGINNING,
+						GridLayout.Alignment.BEGINNING, true, true, 1, 1));
+
+				Label uidValue = new Label(uid);
+				uidValue.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.BEGINNING,
+						GridLayout.Alignment.BEGINNING, true, true, 1, 1));
+
+				Label opmodeLabel = new Label("Opmode:");
+				opmodeLabel.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.BEGINNING,
+						GridLayout.Alignment.BEGINNING, true, true, 1, 1));
+
+				String[] opmodeChoices = { "0. Basic", "1. RFID Stored", "2. RFID Remote" };
+
+				ComboBox<String> opmodeBox = new ComboBox<String>(opmodeChoices);
+				opmodeBox.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.BEGINNING,
+						GridLayout.Alignment.BEGINNING, true, true, 1, 1));
+
+				Label rfidLabel = new Label("RFID UID:");
+				rfidLabel.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.BEGINNING,
+						GridLayout.Alignment.BEGINNING, true, true, 1, 1));
+
+				TextBox rfidBox = new TextBox(new TerminalSize(12, 1));
+				rfidBox.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.BEGINNING,
+						GridLayout.Alignment.BEGINNING, true, true, 1, 1));
+
+				Button abort = new Button("Abort", new Runnable() {
+					@Override
+					public void run() {
+						close();
+					}
+				});
+				Button commit = new Button("Commit", new Runnable() {
+					@Override
+					public void run() {
+						if (opmodeBox.getSelectedIndex() == 1) {
+							if (rfidBox.getText().length() != 11) {
+								MessageDialog.showMessageDialog(UserInterface.getGui(), "Error",
+										"RFID UID should be 11 characters long.", MessageDialogButton.valueOf("OK"));
+							} else {
+								ParkEye eye = ParkEye.getEyeByUID(uid);
+								eye.setConfigbuffer(Integer.toString(opmodeBox.getSelectedIndex()) + rfidBox.getText());
+								close();
+							}
+						} else {
+							if (rfidBox.getText().length() != 0) {
+								MessageDialog.showMessageDialog(UserInterface.getGui(), "Error",
+										"Selected opmode does not support RFID UID.",
+										MessageDialogButton.valueOf("OK"));
+							} else {
+								ParkEye eye = ParkEye.getEyeByUID(uid);
+								eye.setConfigbuffer(Integer.toString(opmodeBox.getSelectedIndex()) + "00 00 00 00");
+								close();
+							}
+						}
+					}
+				});
+
+				contentPanel.addComponent(description);
+				contentPanel.addComponent(uidLabel);
+				contentPanel.addComponent(uidValue);
+				contentPanel.addComponent(opmodeLabel);
+				contentPanel.addComponent(opmodeBox);
+				contentPanel.addComponent(rfidLabel);
+				contentPanel.addComponent(rfidBox);
+				contentPanel.addComponent(abort);
+				contentPanel.addComponent(commit);
+				setComponent(contentPanel);
 			}
 		};
 		t.start();

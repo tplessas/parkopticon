@@ -44,13 +44,13 @@ const char* ssid     = "WiFi_2.4G-03128";
 const char* password = "AV9je7CPX6EKzsXh";
 
 //server connection info
-const char* host = "192.168.2.5";
+const char* host = "192.168.2.9";
 const uint16_t port = 42069;
 
 //2x18650 batteries
 const double vcc_nominal = 8.3;
 const double vcc_empty = 5.0;
-int voltage; //read from A0 using voltage divider, 1024(3.3v) top
+double voltage; //read from A0 using voltage divider, 1024(3.3v) top
 
 //config variables
 char uid[6]; //ParkEye UID
@@ -65,9 +65,10 @@ int infract; //infraction status, used in rfid subroutine
 String message;
 
 void setup() {
+  WiFi.mode(WIFI_OFF); //turn on only when contacting server, max power savings
   voltage = analogRead(A0); //first off to get correct measurement
 
-  Serial.begin(74880); //init serial at 74880 as debug port, NOT COMPATIBLE WITH edgeWare 
+  Serial.begin(74880); //init serial at 74880 as debug port, NOT COMPATIBLE WITH edgeWare
   Serial.println("Reset reason:" + ESP.getResetReason());
 
   //pass variable pointers to RTC state object
@@ -90,7 +91,7 @@ void setup() {
     for (int i = 0; i < 5; i++) {
       uid[i] = EEPROM.read(i);
     }
-    message = (String)uid + "*" + (String)((voltage / 1024) * 100) + "*"; //beginning message with uid and battery percentage from voltage read
+    message = (String)uid + "*" + (String)((int)(((double)voltage / 1024) * 100)) + "*"; //beginning message with uid and battery percentage from voltage read
 
     //reading and printing opmode
     opmode = EEPROM.read(5);
@@ -108,9 +109,10 @@ void setup() {
     ESP.deepSleep(0); //sleep until rst LOW
   } else { //soft reset, variables in memory
     Serial.print("SOFT/"); //as in soft reset
-    message = (String)uid + "*" + (String)((voltage / 1024) * 100) + "*";  //beginning message with uid and battery percentage from voltage read
+    message = (String)uid + "*" + (String)((int)(((double)voltage / 1024) * 100)) + "*";  //beginning message with uid and battery percentage from voltage read
     flip();
     contactServer();
+    state.saveToRTC();
     ESP.deepSleep(0); //sleep until rst LOW
   }
 }
@@ -132,7 +134,7 @@ void flip() {
   } else {
     free();
   }
-  state.saveToRTC();
+  state.saveToRTC(); //in case system reboots before contactServer() finishes
 }
 
 //occupy parking spot
@@ -227,6 +229,7 @@ String castString() {
   return str;
 }
 
+//send messages to edge node, receive updates
 void contactServer() {
   Serial.print(message);
 
@@ -247,20 +250,35 @@ void contactServer() {
   }
   client.println(message);
   Serial.print("/SENT");
+  String answer;
 
-  String answer = client.readStringUntil('\n');
-  if(answer.equals("CONFIG?")) {
-    Serial.print("/CONFIG?/");
-    appendConfig();
-    Serial.print(message);
-    client.println(message);
-    Serial.print("/SENT");
-  }
+  do {
+    answer = client.readStringUntil('\n');
+    if (answer.equals("CONFIG?")) {
+      Serial.print("/CONFIG?/");
+      message = (String)opmode + (String)rfuid;
+      Serial.print(message);
+      client.println(message);
+      Serial.print("/SENT");
+    } else if (answer.equals("NEWCONFIG")) {
+      Serial.print("/NEWCONFIG/");
+      String newconfig = client.readStringUntil('\n');
+      Serial.print(newconfig);
+      EEPROM.begin(512);
+      EEPROM.write(5, newconfig.substring(0, 1).toInt());
+      opmode = EEPROM.read(5);
+      String newuid = newconfig.substring(1, 12);
+      for (int i = 0; i < 11; i++) {
+        EEPROM.write(i + 6, newuid[i]);
+      }
+      EEPROM.commit();
+      for (int i = 0; i < 11; i++) {
+        rfuid[i] = EEPROM.read(i + 6);
+      }
+      EEPROM.end();
+    }
+  } while (!answer.equals("OK"));
   client.stop();
-}
-
-void appendConfig() {
-  message = (String)opmode + (String)rfuid;
 }
 
 //never reached, only here to placate the compiler

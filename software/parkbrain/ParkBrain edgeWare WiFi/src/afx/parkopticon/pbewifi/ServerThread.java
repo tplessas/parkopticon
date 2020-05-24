@@ -35,6 +35,8 @@ import java.net.Socket;
 
 public class ServerThread extends Thread {
 	private Socket socket;
+	private BufferedReader in;
+	private PrintWriter out;
 
 	public ServerThread(Socket socket) {
 		this.socket = socket;
@@ -42,17 +44,15 @@ public class ServerThread extends Thread {
 
 	public void run() {
 		try {
-			BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			out = new PrintWriter(socket.getOutputStream(), true);
 			String[] messages;
 
 			messages = in.readLine().split("\\*");
 			ParkEye eye = ParkEye.getEyeByUID(messages[0]);
 			int battery = Integer.parseInt(messages[1]);
 			if (eye == null) { // get config and create new ParkEye
-				out.print("CONFIG?\n");
-				out.flush();
-				String config = in.readLine();
+				String config = askConfig();
 				int opmode = Character.getNumericValue(config.charAt(0));
 				String rfuid = config.substring(1, 12);
 				eye = new ParkEye(messages[0], opmode, rfuid);
@@ -65,13 +65,24 @@ public class ServerThread extends Thread {
 					out.print("NEWCONFIG\n");
 					out.flush();
 					out.println(eye.getConfigbuffer());
+					out.flush();
+					String config = askConfig();
+					eye.setOpmode(Character.getNumericValue(config.charAt(0)));
+					eye.setRfuid(config.substring(1, 12));
 					eye.setConfigbuffer(null);
 				}
 			}
-			out.println("OK");
+			out.print("OK\n");
+			out.flush();
 			socket.close();
 		} catch (IOException ex) {
 		}
+	}
+	
+	private String askConfig() throws IOException {
+		out.print("CONFIG?\n");
+		out.flush();
+		return in.readLine();
 	}
 
 	private void parseMessages(ParkEye eye, String[] messages) {
@@ -96,5 +107,21 @@ public class ServerThread extends Thread {
 				}
 			}
 		}
+	}
+
+	public BufferedReader getIn() {
+		return in;
+	}
+
+	public void setIn(BufferedReader in) {
+		this.in = in;
+	}
+
+	public PrintWriter getOut() {
+		return out;
+	}
+
+	public void setOut(PrintWriter out) {
+		this.out = out;
 	}
 }
