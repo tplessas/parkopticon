@@ -44,13 +44,13 @@ const char* ssid     = "WiFi_2.4G-03128";
 const char* password = "AV9je7CPX6EKzsXh";
 
 //server connection info
-const char* host = "192.168.2.9";
+const char* host = "192.168.2.10";
 const uint16_t port = 42069;
 
 //2x18650 batteries
-const double vcc_nominal = 8.3;
-const double vcc_empty = 5.0;
-double voltage; //read from A0 using voltage divider, 1024(3.3v) top
+//const double vcc_nominal = 8.4;
+//const double vcc_empty = 6.0;
+double voltage; //read from A0 using voltage divider (1K, 660), 1024(3.3v) top
 
 //config variables
 char uid[6]; //ParkEye UID
@@ -91,7 +91,7 @@ void setup() {
     for (int i = 0; i < 5; i++) {
       uid[i] = EEPROM.read(i);
     }
-    message = (String)uid + "*" + (String)((int)(((double)voltage / 1024) * 100)) + "*"; //beginning message with uid and battery percentage from voltage read
+    message = (String)uid + "*" + (String)batteryPercent() + "*"; //beginning message with uid and battery percentage
 
     //reading and printing opmode
     opmode = EEPROM.read(5);
@@ -109,7 +109,7 @@ void setup() {
     ESP.deepSleep(0); //sleep until rst LOW
   } else { //soft reset, variables in memory
     Serial.print("SOFT/"); //as in soft reset
-    message = (String)uid + "*" + (String)((int)(((double)voltage / 1024) * 100)) + "*";  //beginning message with uid and battery percentage from voltage read
+    message = (String)uid + "*" + (String)batteryPercent() + "*";  //beginning message with uid and battery percentage
     flip();
     contactServer();
     state.saveToRTC();
@@ -227,6 +227,17 @@ String castString() {
     }
   }
   return str;
+}
+
+//implementation of linear battery percentage function down to 6v (2x3v)
+//measurement is exponential after that point, not good to discharge that low anyway
+int batteryPercent() {
+
+  if (voltage > 732) { //more than 6v
+    return 0.34 * (double)voltage - 250.68; //
+  } else { //less than or equal to 6v
+    return 0;
+  }
 }
 
 //send messages to edge node, receive updates

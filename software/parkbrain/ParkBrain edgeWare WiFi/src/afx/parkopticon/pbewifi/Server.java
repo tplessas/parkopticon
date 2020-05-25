@@ -28,6 +28,7 @@
 package afx.parkopticon.pbewifi;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -38,7 +39,7 @@ public class Server extends Thread {
 	public void run() {
 
 		try {
-			serverSocket = new ServerSocket(42069);
+			serverSocket = new ServerSocket(42069, 50, InetAddress.getByName("0.0.0.0"));
 
 			while (true) {
 				Socket socket = serverSocket.accept();
