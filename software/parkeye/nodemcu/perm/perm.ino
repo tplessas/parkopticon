@@ -66,7 +66,13 @@ String message;
 
 void setup() {
   WiFi.mode(WIFI_OFF); //turn on only when contacting server, max power savings
+  WiFi.forceSleepBegin();
   voltage = analogRead(A0); //first off to get correct measurement
+
+  //discharge protection
+  if (voltage < 720) {
+    ESP.deepSleep(0);
+  }
 
   Serial.begin(74880); //init serial at 74880 as debug port, NOT COMPATIBLE WITH edgeWare
   Serial.println("Reset reason:" + ESP.getResetReason());
