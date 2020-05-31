@@ -27,11 +27,7 @@
 
 package afx.parkopticon.pbewifi;
 
-import java.util.ArrayList;
-
 public class ParkEye {
-
-	private static ArrayList<ParkEye> eyes = new ArrayList<ParkEye>();
 
 	private String uid;
 	private int opmode;
@@ -51,24 +47,7 @@ public class ParkEye {
 		setUid(uid);
 		setOpmode(opmode);
 		setRfuid(rfuid);
-		eyes.add(this);
-	}
-	
-	public static ParkEye getEyeByUID(String input) {
-		for(ParkEye eye : eyes) {
-			if(input.equals(eye.getUid())) {
-				return eye;
-			}
-		}
-		return null;
-	}
-
-	public static ArrayList<ParkEye> getEyes() {
-		return eyes;
-	}
-
-	public static void setEyes(ArrayList<ParkEye> eyes) {
-		ParkEye.eyes = eyes;
+		Sensors.addEye(this);
 	}
 
 	public int getBatterypercent() {
@@ -134,11 +113,4 @@ public class ParkEye {
 	public void setRfid_health(boolean rfid_health) {
 		this.rfid_health = rfid_health;
 	}
-
-	@Override
-	public String toString() {
-		return "ParkEye [uid=" + uid + ", opmode=" + opmode + ", rfuid=" + rfuid + ", occ=" + occ
-				+ ", infract=" + infract + ", rfid_health=" + rfid_health + "]";
-	}
-
 }

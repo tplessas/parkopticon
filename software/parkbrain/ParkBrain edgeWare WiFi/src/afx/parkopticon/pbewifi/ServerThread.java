@@ -49,7 +49,7 @@ public class ServerThread extends Thread {
 			String[] messages;
 
 			messages = in.readLine().split("\\*");
-			ParkEye eye = ParkEye.getEyeByUID(messages[0]);
+			ParkEye eye = Sensors.getEyeByUID(messages[0]);
 			int battery = Integer.parseInt(messages[1]);
 			if (eye == null) { // get config and create new ParkEye
 				String config = askConfig();
@@ -107,21 +107,5 @@ public class ServerThread extends Thread {
 				}
 			}
 		}
-	}
-
-	public BufferedReader getIn() {
-		return in;
-	}
-
-	public void setIn(BufferedReader in) {
-		this.in = in;
-	}
-
-	public PrintWriter getOut() {
-		return out;
-	}
-
-	public void setOut(PrintWriter out) {
-		this.out = out;
 	}
 }

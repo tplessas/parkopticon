@@ -1,8 +1,8 @@
 package afx.parkopticon.pbewifi;
 
-public class PBeW {
+public class App {
 
-	public static Server server = new Server();
+	private static Server server = new Server();
 	
 	public static void main(String[] args) {
 		UserInterface ui = new UserInterface();
@@ -10,4 +10,7 @@ public class PBeW {
 		server.start();
 	}
 
+	public static Server getServer() {
+		return server;
+	}
 }

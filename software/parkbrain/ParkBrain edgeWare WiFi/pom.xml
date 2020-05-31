@@ -34,7 +34,7 @@
 						<manifest>
 							<addClasspath>true</addClasspath>
 							<classpathPrefix>lib/</classpathPrefix>
-							<mainClass>afx.parkopticon.pbewifi.PBeW</mainClass>
+							<mainClass>afx.parkopticon.pbewifi.App</mainClass>
 						</manifest>
 					</archive>
 				</configuration>

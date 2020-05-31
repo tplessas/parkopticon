@@ -236,7 +236,7 @@ String castString() {
 }
 
 //implementation of linear battery percentage function down to 6v (2x3v)
-//measurement is exponential after that point, not good to discharge that low anyway
+//drop is exponential after that point, not good to discharge that low anyway
 int batteryPercent() {
 
   if (voltage > 732) { //more than 6v
