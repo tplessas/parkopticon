@@ -48,7 +48,8 @@ const char* host = "192.168.2.10";
 const uint16_t port = 42069;
 
 //2x18650 batteries
-//const double vcc_nominal = 8.4;
+//const double vcc_full = 8.4;
+//const double vcc_nominal = 7.4;
 //const double vcc_empty = 6.0;
 double voltage; //read from A0 using voltage divider (1K, 660), 1024(3.3v) top
 
@@ -74,7 +75,7 @@ void setup() {
     ESP.deepSleep(0);
   }
 
-  Serial.begin(74880); //init serial at 74880 as debug port, NOT COMPATIBLE WITH edgeWare
+  Serial.begin(74880); //init serial at 74880 as debug port, NOT COMPATIBLE WITH edgeWare Serial
   Serial.println("Reset reason:" + ESP.getResetReason());
 
   //pass variable pointers to RTC state object

@@ -49,7 +49,7 @@ public class ServerThread extends Thread {
 			String[] messages;
 
 			messages = in.readLine().split("\\*");
-			ParkEye eye = Sensors.getEyeByUID(messages[0]);
+			ParkEye eye = SensorLists.getEyeByUID(messages[0]);
 			int battery = Integer.parseInt(messages[1]);
 			if (eye == null) { // get config and create new ParkEye
 				String config = askConfig();

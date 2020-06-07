@@ -233,7 +233,7 @@ class MainView extends BasicWindow {
 				Runnable tableUpdate = new Runnable() {
 					public void run() {
 						table.getTableModel().clear();
-						for (ParkEye eye : Sensors.getEyes()) {
+						for (ParkEye eye : SensorLists.getEyes()) {
 							String occ = eye.isOcc() ? "Occupied" : "Free";
 							String infract = null;
 							switch (eye.getInfract()) {
@@ -299,7 +299,7 @@ class MainView extends BasicWindow {
 				contentPanel.addComponent(connsPanel);
 				Runnable connsUpdate = new Runnable() {
 					public void run() {
-						Label conns = new Label("ParkEyes connected: " + String.valueOf(Sensors.getEyes().size()));
+						Label conns = new Label("ParkEyes connected: " + String.valueOf(SensorLists.getEyes().size()));
 						conns.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.BEGINNING,
 								GridLayout.Alignment.BEGINNING, true, true, 1, 1));
 						connsPanel.addComponent(conns);
@@ -394,7 +394,7 @@ class ConfigWizard extends BasicWindow {
 								MessageDialog.showMessageDialog(UserInterface.getGui(), "Error",
 										"RFID UID should be 11 characters long.", MessageDialogButton.valueOf("OK"));
 							} else {
-								ParkEye eye = Sensors.getEyeByUID(uid);
+								ParkEye eye = SensorLists.getEyeByUID(uid);
 								eye.setConfigbuffer(Integer.toString(opmodeBox.getSelectedIndex()) + rfidBox.getText());
 								close();
 							}
@@ -404,7 +404,7 @@ class ConfigWizard extends BasicWindow {
 										"Selected opmode does not support RFID UID.",
 										MessageDialogButton.valueOf("OK"));
 							} else {
-								ParkEye eye = Sensors.getEyeByUID(uid);
+								ParkEye eye = SensorLists.getEyeByUID(uid);
 								eye.setConfigbuffer(Integer.toString(opmodeBox.getSelectedIndex()) + "00 00 00 00");
 								close();
 							}

@@ -2,7 +2,7 @@ package afx.parkopticon.pbewifi;
 
 import java.util.ArrayList;
 
-public class Sensors {
+public class SensorLists {
 	
 	private static ArrayList<ParkEye> eyes = new ArrayList<ParkEye>();
 	

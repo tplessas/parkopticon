@@ -47,7 +47,7 @@ public class ParkEye {
 		setUid(uid);
 		setOpmode(opmode);
 		setRfuid(rfuid);
-		Sensors.addEye(this);
+		SensorLists.addEye(this);
 	}
 
 	public int getBatterypercent() {
