@@ -40,12 +40,12 @@ MFRC522::MIFARE_Key key;
 RTCVars state; // stores variables in RTCmem, persistence after deep sleep-reset cycle
 
 //AP connection info
-const char* ssid     = "WiFi_2.4G-03128";
-const char* password = "AV9je7CPX6EKzsXh";
+const char* ssid     = "";
+const char* password = "";
 
 //server connection info
-const char* host = "192.168.2.10";
-const uint16_t port = 42069;
+const char* host = "";
+const uint16_t port = ;
 
 //2x18650 batteries
 //const double vcc_full = 8.4;
